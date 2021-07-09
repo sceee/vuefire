@@ -1,20 +1,25 @@
 import { ref, Ref } from 'vue'
+import firebase from 'firebase/app'
 import {
   rtdbBindAsObject,
   rtdbBindAsArray,
   rtdbOptions,
 } from '../../../src/core'
-import { MockFirebase, createOps, MockedReference } from '../../src'
+import { createOps, generateRandomID, initFirebase } from '../../src'
+
+beforeAll(() => {
+  initFirebase()
+})
 
 describe('RTDB options', () => {
-  let collection: MockedReference,
-    document: MockedReference,
+  let collection: firebase.database.Reference,
+    document: firebase.database.Reference,
     target: Ref<Record<string, any>>,
     unbind: () => void
   const ops = createOps()
   beforeEach(async () => {
-    collection = new MockFirebase().child('data')
-    document = new MockFirebase().child('data')
+    collection = firebase.database().ref(generateRandomID())
+    document = firebase.database().ref(generateRandomID())
     target = ref({})
   })
 
@@ -24,7 +29,7 @@ describe('RTDB options', () => {
 
   it('allows customizing serialize when calling bindDocument', async () => {
     const spy = jest.fn(() => ({ bar: 'foo' }))
-    await new Promise((resolve, reject) => {
+    await new Promise(async (resolve, reject) => {
       unbind = rtdbBindAsObject(
         {
           target,
@@ -35,13 +40,12 @@ describe('RTDB options', () => {
         },
         { serialize: spy }
       )
-      document.set({ foo: 'foo' })
-      document.flush()
+      await document.set({ foo: 'foo' })
+      //// document.flush()
     })
 
     expect(spy).toHaveBeenCalledTimes(2)
     expect(spy).toHaveBeenLastCalledWith(
-      // @ts-ignore WTF TS?????
       expect.objectContaining({ val: expect.any(Function) })
     )
     expect(target.value).toEqual({ bar: 'foo' })
@@ -50,7 +54,7 @@ describe('RTDB options', () => {
   it('allows customizing serialize when calling bindCollection', async () => {
     const spy = jest.fn(() => ({ bar: 'foo' }))
 
-    await new Promise((resolve, reject) => {
+    await new Promise(async (resolve, reject) => {
       unbind = rtdbBindAsArray(
         {
           target,
@@ -61,13 +65,12 @@ describe('RTDB options', () => {
         },
         { serialize: spy }
       )
-      collection.push({ foo: 'foo' })
-      collection.flush()
+      await collection.push({ foo: 'foo' })
+      // collection.flush()
     })
 
     expect(spy).toHaveBeenCalledTimes(1)
     expect(spy).toBeCalledWith(
-      // @ts-ignore WTF TS?????
       expect.objectContaining({ val: expect.any(Function) })
     )
     expect(target.value).toEqual([{ bar: 'foo' }])
@@ -78,7 +81,7 @@ describe('RTDB options', () => {
     const spy = jest.fn(() => ({ bar: 'foo' }))
     rtdbOptions.serialize = spy
 
-    await new Promise((resolve, reject) => {
+    await new Promise(async (resolve, reject) => {
       unbind = rtdbBindAsObject(
         {
           target,
@@ -89,13 +92,12 @@ describe('RTDB options', () => {
         },
         { serialize: spy }
       )
-      document.set({ foo: 'foo' })
-      document.flush()
+      await document.set({ foo: 'foo' })
+      //// document.flush()
     })
 
     expect(spy).toHaveBeenCalledTimes(2)
     expect(spy).toBeCalledWith(
-      // @ts-ignore WTF TS?????
       expect.objectContaining({ val: expect.any(Function) })
     )
     expect(target.value).toEqual({ bar: 'foo' })
@@ -108,7 +110,7 @@ describe('RTDB options', () => {
     const spy = jest.fn(() => ({ bar: 'foo' }))
     rtdbOptions.serialize = spy
 
-    await new Promise((resolve, reject) => {
+    await new Promise(async (resolve, reject) => {
       unbind = rtdbBindAsArray(
         {
           target,
@@ -119,13 +121,12 @@ describe('RTDB options', () => {
         },
         { serialize: spy }
       )
-      collection.push({ foo: 'foo' })
-      collection.flush()
+      await collection.push({ foo: 'foo' })
+      // collection.flush()
     })
 
     expect(spy).toHaveBeenCalledTimes(1)
     expect(spy).toBeCalledWith(
-      // @ts-ignore WTF TS?????
       expect.objectContaining({ val: expect.any(Function) })
     )
     expect(target.value).toEqual([{ bar: 'foo' }])

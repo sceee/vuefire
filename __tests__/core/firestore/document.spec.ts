@@ -1,8 +1,13 @@
+import firebase from 'firebase'
 import { bindDocument } from '../../../src/core'
-import { db, spyUnbind, createOps } from '../../src'
+import { spyUnbind, createOps, initFirebase, generateRandomID } from '../../src'
 import * as firestore from '@firebase/firestore-types'
 import { OperationsType } from '../../../src/shared'
 import { ref, Ref } from 'vue'
+
+beforeAll(() => {
+  initFirebase()
+})
 
 describe('documents', () => {
   let collection: firestore.CollectionReference,
@@ -13,10 +18,9 @@ describe('documents', () => {
     ops: OperationsType
 
   beforeEach(async () => {
-    // @ts-ignore
-    collection = db.collection()
-    // @ts-ignore
+    collection = firebase.firestore().collection(generateRandomID())
     document = collection.doc()
+    await document.set({})
     ops = createOps()
     target = ref({})
     await new Promise((res, rej) => {
@@ -69,7 +73,7 @@ describe('documents', () => {
   it('adds non-enumerable id', async () => {
     document = collection.doc('some-id')
     bindDocument(target, document, ops, resolve, reject)
-    await document.update({ foo: 'foo' })
+    await document.set({ foo: 'foo' })
     expect(Object.getOwnPropertyDescriptor(target.value, 'id')).toEqual({
       configurable: false,
       enumerable: false,
@@ -80,7 +84,7 @@ describe('documents', () => {
 
   it('manually unbinds a document', async () => {
     document = collection.doc()
-    await document.update({ foo: 'foo' })
+    await document.set({ foo: 'foo' })
     const unbindSpy = spyUnbind(document)
     let unbind: () => void = () => {
       throw new Error('Promise was not called')

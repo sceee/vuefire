@@ -192,7 +192,7 @@ export function bindCollection(
   const options = Object.assign({}, DEFAULT_OPTIONS, extraOptions) // fill default values
   const key = 'value'
   if (!options.wait) ops.set(target, key, [])
-  let arrayRef = ref(options.wait ? [] : target[key])
+  const arrayRef = ref(options.wait ? [] : target[key])
   const originalResolve = resolve
   let isResolved: boolean
 
@@ -257,7 +257,7 @@ export function bindCollection(
       typeof snapshot.docChanges === 'function'
         ? snapshot.docChanges()
         : /* istanbul ignore next to support firebase < 5*/
-          ((snapshot.docChanges as unknown) as firestore.DocumentChange[])
+          (snapshot.docChanges as unknown as firestore.DocumentChange[])
 
     if (!isResolved && docChanges.length) {
       // isResolved is only meant to make sure we do the check only once

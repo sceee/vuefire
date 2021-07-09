@@ -1,8 +1,13 @@
+import firebase from 'firebase'
 import { firestorePlugin } from '../../../src'
-import { db, tick, delayUpdate } from '../../src'
+import { tick, delayUpdate, initFirebase, generateRandomID } from '../../src'
 import * as firestore from '@firebase/firestore-types'
 import { ComponentPublicInstance } from 'vue'
 import { mount, VueWrapper } from '@vue/test-utils'
+
+beforeAll(() => {
+  initFirebase()
+})
 
 describe('Firestore: binding', () => {
   let collection: firestore.CollectionReference
@@ -10,10 +15,8 @@ describe('Firestore: binding', () => {
   let vm: ComponentPublicInstance & { items: any[]; item: any }
   let wrapper: VueWrapper<ComponentPublicInstance & { items: any[]; item: any }>
   beforeEach(async () => {
-    // @ts-ignore
-    collection = db.collection()
-    // @ts-ignore
-    document = db.collection().doc()
+    collection = firebase.firestore().collection(generateRandomID())
+    document = collection.doc()
 
     wrapper = mount(
       {
@@ -43,16 +46,16 @@ describe('Firestore: binding', () => {
     expect(vm.item).toEqual(null)
     await vm.$bind('item', document)
     expect(vm.item).toEqual(null)
-    await document.update({ text: 'foo' })
+    await document.set({ text: 'foo' })
     expect(vm.item).toEqual({ text: 'foo' })
   })
 
   it('removes items', async () => {
-    collection.add({ name: 'one' })
-    collection.add({ name: 'two' })
+    await collection.add({ name: 'one' })
+    await collection.add({ name: 'two' })
 
     await vm.$bind('items', collection)
-    await collection.doc(vm.items[1].id).delete()
+    await collection.doc(vm.items.find((i) => i.name === 'two').id).delete()
     expect(vm.items).toEqual([{ name: 'one' }])
   })
 
@@ -62,10 +65,9 @@ describe('Firestore: binding', () => {
   })
 
   it('unbinds previously bound refs', async () => {
-    await document.update({ foo: 'foo' })
-    // @ts-ignore
-    const doc2: firestore.DocumentReference = db.collection().doc()
-    await doc2.update({ bar: 'bar' })
+    await document.set({ foo: 'foo' })
+    const doc2 = firebase.firestore().collection(generateRandomID()).doc()
+    await doc2.set({ bar: 'bar' })
     await vm.$bind('item', document)
     expect(vm.$firestoreRefs.item).toBe(document)
     expect(vm.item).toEqual({ foo: 'foo' })
@@ -77,11 +79,10 @@ describe('Firestore: binding', () => {
   })
 
   it('waits for all refs in document', async () => {
-    const a = db.collection().doc()
-    // @ts-ignore
-    const b: firestore.DocumentReference = db.collection().doc()
+    const a = firebase.firestore().collection(generateRandomID()).doc()
+    const b = firebase.firestore().collection(generateRandomID()).doc()
     delayUpdate(b)
-    await document.update({ a, b })
+    await document.set({ a, b })
 
     await vm.$bind('item', document)
 
@@ -92,16 +93,15 @@ describe('Firestore: binding', () => {
   })
 
   test('waits for all refs in document with interrupting by new ref', async () => {
-    const a = db.collection().doc()
-    // @ts-ignore
-    const b: firestore.DocumentReference = db.collection().doc()
-    const c = db.collection().doc()
+    const a = firebase.firestore().collection(generateRandomID()).doc()
+    const b = firebase.firestore().collection(generateRandomID()).doc()
+    const c = firebase.firestore().collection(generateRandomID()).doc()
     delayUpdate(b)
-    await document.update({ a, b })
+    await document.set({ a, b })
 
     const promise = vm.$bind('item', document)
 
-    document.update({ c })
+    await document.update({ c })
 
     await promise
 
@@ -113,28 +113,26 @@ describe('Firestore: binding', () => {
   })
 
   it('waits for all refs in collection', async () => {
-    const a = db.collection().doc()
-    // @ts-ignore
-    const b: firestore.DocumentReference = db.collection().doc()
+    const a = firebase.firestore().collection(generateRandomID()).doc()
+    const b = firebase.firestore().collection(generateRandomID()).doc()
     delayUpdate(b)
     await collection.add({ a })
     await collection.add({ b })
 
     await vm.$bind('items', collection)
 
-    expect(vm.items).toEqual([{ a: null }, { b: null }])
+    expect(vm.items).toHaveLength(2)
+    expect(vm.items).toEqual(expect.arrayContaining([{ b: null }, { a: null }]))
   })
 
   it('waits for nested refs in document', async () => {
-    const a = db.collection().doc()
-    // @ts-ignore
-    const b: firestore.DocumentReference = db.collection().doc()
-    // @ts-ignore
-    const c: firestore.DocumentReference = db.collection().doc()
-    await b.update({ c })
+    const a = firebase.firestore().collection(generateRandomID()).doc()
+    const b = firebase.firestore().collection(generateRandomID()).doc()
+    const c = firebase.firestore().collection(generateRandomID()).doc()
+    await b.set({ c })
     delayUpdate(b)
     delayUpdate(c, 5)
-    await document.update({ a, b })
+    await document.set({ a, b })
 
     await vm.$bind('item', document)
 
@@ -145,17 +143,15 @@ describe('Firestore: binding', () => {
   })
 
   it('waits for nested refs with data in document', async () => {
-    const a = db.collection().doc()
-    // @ts-ignore
-    const b: firestore.DocumentReference = db.collection().doc()
-    // @ts-ignore
-    const c: firestore.DocumentReference = db.collection().doc()
-    await a.update({ isA: true })
-    await c.update({ isC: true })
-    await b.update({ c })
+    const a = firebase.firestore().collection(generateRandomID()).doc()
+    const b = firebase.firestore().collection(generateRandomID()).doc()
+    const c = firebase.firestore().collection(generateRandomID()).doc()
+    await a.set({ isA: true })
+    await c.set({ isC: true })
+    await b.set({ c })
     delayUpdate(b)
     delayUpdate(c, 5)
-    await document.update({ a, b })
+    await document.set({ a, b })
 
     await vm.$bind('item', document)
 
@@ -166,12 +162,10 @@ describe('Firestore: binding', () => {
   })
 
   it('waits for nested refs in collections', async () => {
-    const a = db.collection().doc()
-    // @ts-ignore
-    const b: firestore.DocumentReference = db.collection().doc()
-    // @ts-ignore
-    const c: firestore.DocumentReference = db.collection().doc()
-    await b.update({ c })
+    const a = firebase.firestore().collection(generateRandomID()).doc()
+    const b = firebase.firestore().collection(generateRandomID()).doc()
+    const c = firebase.firestore().collection(generateRandomID()).doc()
+    await b.set({ c })
     delayUpdate(b)
     delayUpdate(c, 5)
     await collection.add({ a })
@@ -179,18 +173,19 @@ describe('Firestore: binding', () => {
 
     await vm.$bind('items', collection)
 
-    expect(vm.items).toEqual([{ a: null }, { b: { c: null } }])
+    expect(vm.items).toHaveLength(2)
+    expect(vm.items).toEqual(
+      expect.arrayContaining([{ a: null }, { b: { c: null } }])
+    )
   })
 
   it('waits for nested refs with data in collections', async () => {
-    const a = db.collection().doc()
-    // @ts-ignore
-    const b: firestore.DocumentReference = db.collection().doc()
-    // @ts-ignore
-    const c: firestore.DocumentReference = db.collection().doc()
-    await a.update({ isA: true })
-    await c.update({ isC: true })
-    await b.update({ c })
+    const a = firebase.firestore().collection(generateRandomID()).doc()
+    const b = firebase.firestore().collection(generateRandomID()).doc()
+    const c = firebase.firestore().collection(generateRandomID()).doc()
+    await a.set({ isA: true })
+    await c.set({ isC: true })
+    await b.set({ c })
     delayUpdate(b)
     delayUpdate(c, 5)
     await collection.add({ a })
@@ -198,32 +193,33 @@ describe('Firestore: binding', () => {
 
     await vm.$bind('items', collection)
 
-    expect(vm.items).toEqual([
-      { a: { isA: true } },
-      { b: { c: { isC: true } } },
-    ])
+    expect(vm.items).toHaveLength(2)
+    expect(vm.items).toEqual(
+      expect.arrayContaining([
+        { a: { isA: true } },
+        { b: { c: { isC: true } } },
+      ])
+    )
   })
 
   it('can customize the reset option through $bind', async () => {
-    await document.update({ foo: 'foo' })
-    // @ts-ignore
-    const doc2: firestore.DocumentReference = db.collection().doc()
-    await doc2.update({ bar: 'bar' })
+    await document.set({ foo: 'foo' })
+    const doc2 = firebase.firestore().collection(generateRandomID()).doc()
+    await doc2.set({ bar: 'bar' })
     await vm.$bind('item', document)
     expect(vm.item).toEqual({ foo: 'foo' })
     const p = vm.$bind('item', doc2, { reset: false })
     expect(vm.item).toEqual({ foo: 'foo' })
     await p
     expect(vm.item).toEqual({ bar: 'bar' })
-    vm.$bind('item', document)
+    await vm.$bind('item', document)
     expect(vm.item).toEqual(null)
   })
 
   it('can customize the reset option through $unbind', async () => {
-    await document.update({ foo: 'foo' })
-    // @ts-ignore
-    const doc2: firestore.DocumentReference = db.collection().doc()
-    await doc2.update({ bar: 'bar' })
+    await document.set({ foo: 'foo' })
+    const doc2 = firebase.firestore().collection(generateRandomID()).doc()
+    await doc2.set({ bar: 'bar' })
     await vm.$bind('item', document)
     vm.$unbind('item', false)
     expect(vm.item).toEqual({ foo: 'foo' })
@@ -236,8 +232,7 @@ describe('Firestore: binding', () => {
   it('do not reset if wait: true', async () => {
     await collection.add({ foo: 'foo' })
     await vm.$bind('items', collection)
-    // @ts-ignore
-    const col2: firestore.CollectionReference = db.collection()
+    const col2 = firebase.firestore().collection(generateRandomID())
     await col2.add({ bar: 'bar' })
     const p = vm.$bind('items', col2, { wait: true, reset: true })
     expect(vm.items).toEqual([{ foo: 'foo' }])
@@ -248,8 +243,7 @@ describe('Firestore: binding', () => {
   it('wait + reset can be overriden with a function', async () => {
     await collection.add({ foo: 'foo' })
     await vm.$bind('items', collection)
-    // @ts-ignore
-    const col2: firestore.CollectionReference = db.collection()
+    const col2 = firebase.firestore().collection(generateRandomID())
     await col2.add({ bar: 'bar' })
     const p = vm.$bind('items', col2, { wait: true, reset: () => ['foo'] })
     expect(vm.items).toEqual(['foo'])

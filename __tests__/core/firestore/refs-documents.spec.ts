@@ -1,11 +1,13 @@
+import firebase from 'firebase'
 import { bindDocument, FirestoreOptions } from '../../../src/core'
 import {
-  db,
   delay,
   spyUnbind,
   spyOnSnapshot,
   spyOnSnapshotCallback,
   createOps,
+  initFirebase,
+  generateRandomID,
 } from '../../src'
 import * as firestore from '@firebase/firestore-types'
 import { OperationsType } from '../../../src/shared'
@@ -18,6 +20,10 @@ const buildRefs = () => ({
   b: ref(),
   c: ref(),
   d: ref(),
+})
+
+beforeAll(() => {
+  initFirebase()
 })
 
 describe('refs in documents', () => {
@@ -37,28 +43,27 @@ describe('refs in documents', () => {
       key: keyof ReturnType<typeof buildRefs>,
       document: firestore.DocumentReference,
       options?: FirestoreOptions
-    ) => void,
+    ) => Promise<void>,
     unbind: () => void,
     ops: OperationsType
 
   beforeEach(async () => {
     target = buildRefs()
     ops = createOps()
-    // @ts-ignore
-    collection = db.collection()
-    // @ts-ignore
-    a = db.collection().doc()
-    // @ts-ignore
-    b = db.collection().doc()
-    // @ts-ignore
-    empty = db.collection().doc()
-    // @ts-ignore
-    item = db.collection().doc()
+    collection = firebase.firestore().collection(generateRandomID())
+    a = collection.doc()
+    b = collection.doc()
+
+    empty = collection.doc()
+    item = collection.doc()
+
     c = collection.doc()
     d = collection.doc()
-    await a.update({ isA: true })
-    await c.update({ isC: true })
-    await d.update({ ref: c })
+
+    await a.set({ isA: true })
+    await c.set({ isC: true })
+    await d.set({ ref: c })
+
     bind = (key, document, options) => {
       return new Promise(
         (resolve, reject) =>
@@ -77,19 +82,16 @@ describe('refs in documents', () => {
 
     // wait for refs to be ready as well
     await delay(5)
-    // @ts-ignore
-    ops.set.mockClear()
-    // @ts-ignore
+    /* ops.set.mockClear()
     ops.add.mockClear()
-    // @ts-ignore
-    ops.remove.mockClear()
+    ops.remove.mockClear() */
   })
 
   it('item should be removed from binding when theres an arrays of refs', async () => {
     const arr = collection.doc()
     target.items.value = null
 
-    await arr.update({ refs: [a, b, c] })
+    await arr.set({ refs: [a, b, c] })
     await bind('items', arr, { maxRefDepth: 0 })
     await arr.update({ refs: [b, c] })
 
@@ -100,7 +102,7 @@ describe('refs in documents', () => {
     const arr = collection.doc()
     target.items.value = null
 
-    await arr.update({ refs: [a, b, c] })
+    await arr.set({ refs: [a, b, c] })
     await bind('items', arr, { maxRefDepth: 0 })
     await arr.update({ refs: [a, c] })
 
@@ -109,7 +111,7 @@ describe('refs in documents', () => {
 
   it('binds refs on documents', async () => {
     // create an empty doc and update using the ref instead of plain data
-    await item.update({ ref: c })
+    await item.set({ ref: c })
     await bind('item', item)
 
     expect(ops.set).toHaveBeenCalledTimes(2)
@@ -133,7 +135,7 @@ describe('refs in documents', () => {
 
   it('does not lose empty references in objects when updating a property', async () => {
     const emptyItem = collection.doc()
-    await item.update({ o: { ref: emptyItem }, toggle: true })
+    await item.set({ o: { ref: emptyItem }, toggle: true })
     await bind('item', item)
     expect(target.item.value).toEqual({
       o: { ref: null },
@@ -148,7 +150,7 @@ describe('refs in documents', () => {
 
   it('does not lose empty references in arrays when updating a property', async () => {
     const emptyItem = collection.doc()
-    await item.update({ a: [emptyItem], toggle: true })
+    await item.set({ a: [emptyItem], toggle: true })
     await bind('item', item)
     expect(target.item.value).toEqual({
       a: [null],
@@ -163,7 +165,7 @@ describe('refs in documents', () => {
 
   it('does not lose empty references in arrays of objects when updating a property', async () => {
     const emptyItem = collection.doc()
-    await item.update({ todos: [{ ref: emptyItem }], toggle: true })
+    await item.set({ todos: [{ ref: emptyItem }], toggle: true })
     await bind('item', item)
     expect(target.item.value).toEqual({
       todos: [{ ref: null }],
@@ -177,7 +179,7 @@ describe('refs in documents', () => {
   })
 
   it('keeps array of references when updating a property', async () => {
-    await item.update({ a: [a, b, c, { foo: 'bar' }], toggle: true })
+    await item.set({ a: [a, b, c, { foo: 'bar' }], toggle: true })
     await bind('item', item)
     expect(target.item.value).toEqual({
       a: [{ isA: true }, null, { isC: true }, { foo: 'bar' }],
@@ -191,7 +193,7 @@ describe('refs in documents', () => {
   })
 
   it('binds refs nested in documents (objects)', async () => {
-    await item.update({
+    await item.set({
       obj: {
         ref: c,
       },
@@ -220,7 +222,7 @@ describe('refs in documents', () => {
   })
 
   it('binds refs deeply nested in documents (objects)', async () => {
-    await item.update({
+    await item.set({
       obj: {
         nested: {
           ref: c,
@@ -302,7 +304,7 @@ describe('refs in documents', () => {
   it('unbinds previously bound document when overwriting a bound', async () => {
     // Mock c onSnapshot to spy when the callback is called
     const spy = spyOnSnapshotCallback(item)
-    await item.update({ baz: 'baz' })
+    await item.set({ baz: 'baz' })
     await d.update({ ref: item })
     // NOTE see #1
     await delay(5)
@@ -332,7 +334,7 @@ describe('refs in documents', () => {
 
   it('does not rebind if it is the same ref', async () => {
     const spy = spyOnSnapshot(item)
-    await item.update({ baz: 'baz' })
+    await item.set({ baz: 'baz' })
     await d.update({ ref: item })
     // NOTE see #1
     await delay(5)
@@ -346,14 +348,14 @@ describe('refs in documents', () => {
   })
 
   it('resolves the promise when refs are resolved in a document', async () => {
-    await item.update({ ref: a })
+    await item.set({ ref: a })
 
     await bind('item', item)
     expect(target.item.value).toEqual({ ref: { isA: true } })
   })
 
   it('resolves the promise when nested refs are resolved in a document', async () => {
-    await item.update({ ref: a })
+    await item.set({ ref: a })
     await d.update({ ref: item })
 
     await bind('item', d)
@@ -361,7 +363,7 @@ describe('refs in documents', () => {
   })
 
   it('resolves the promise when nested non-existant refs are resolved in a document', async () => {
-    await item.update({ ref: empty })
+    await item.set({ ref: empty })
     await d.update({ ref: item })
 
     await bind('item', d)
@@ -398,8 +400,8 @@ describe('refs in documents', () => {
     const cSpy = spyUnbind(b)
     const dSpy = spyUnbind(item)
 
-    await b.update({ ref: a })
-    await item.update({ ref: b })
+    await b.set({ ref: a })
+    await item.set({ ref: b })
 
     await bind('item', item)
     unbind()
@@ -418,7 +420,7 @@ describe('refs in documents', () => {
     const cSpy = spyUnbind(c)
     const dSpy = spyUnbind(item)
 
-    await item.update({ c, a })
+    await item.set({ c, a })
 
     await bind('item', item)
     unbind()
@@ -463,17 +465,15 @@ describe('refs in documents', () => {
   })
 
   it('unbinds removed properties', async () => {
-    // @ts-ignore
-    const a: firestore.DocumentReference = db.collection().doc()
+    const a = firebase.firestore().collection(generateRandomID()).doc()
     const unbindSpy = spyUnbind(a)
     const callbackSpy = spyOnSnapshotCallback(a)
     const onSnapshotSpy = spyOnSnapshot(a)
 
-    // @ts-ignore
-    const item: firestore.DocumentReference = db.collection().doc()
-    await a.update({ isA: true })
-    await b.update({ isB: true })
-    await item.update({ a })
+    const item = firebase.firestore().collection(generateRandomID()).doc()
+    await a.set({ isA: true })
+    await b.set({ isB: true })
+    await item.set({ a })
 
     expect(unbindSpy).toHaveBeenCalledTimes(0)
     expect(callbackSpy).toHaveBeenCalledTimes(0)
@@ -499,11 +499,10 @@ describe('refs in documents', () => {
   })
 
   it('binds refs on arrays', async () => {
-    // @ts-ignore
-    const item: firestore.DocumentReference = db.collection().doc()
-    await b.update({ isB: true })
+    const item = firebase.firestore().collection(generateRandomID()).doc()
+    await b.set({ isB: true })
 
-    await item.update({
+    await item.set({
       arr: [a, b, a],
     })
 
@@ -515,7 +514,7 @@ describe('refs in documents', () => {
   })
 
   it('properly updates a document with refs', async () => {
-    await item.update({ a })
+    await item.set({ a })
     await bind('item', item)
 
     expect(target.item.value).toEqual({
@@ -534,7 +533,7 @@ describe('refs in documents', () => {
   })
 
   it('updates values in arrays', async () => {
-    await item.update({
+    await item.set({
       arr: [a, b],
     })
 
@@ -544,7 +543,7 @@ describe('refs in documents', () => {
       arr: [{ isA: true }, null],
     })
 
-    await b.update({ isB: true })
+    await b.set({ isB: true })
 
     expect(target.item.value).toEqual({
       arr: [{ isA: true }, { isB: true }],
@@ -564,7 +563,7 @@ describe('refs in documents', () => {
 
   // TODO move to vuefire
   it.skip('correctly updates arrays', async () => {
-    await item.update({
+    await item.set({
       arr: [a, b],
     })
 
@@ -590,7 +589,7 @@ describe('refs in documents', () => {
   })
 
   it('respects provided maxRefDepth', async () => {
-    await item.update({ a })
+    await item.set({ a })
     await a.set({ b })
     await b.set({ c })
     await d.set({ isD: true })

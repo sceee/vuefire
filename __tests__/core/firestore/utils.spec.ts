@@ -1,40 +1,34 @@
+import firebase from 'firebase'
+import { generateRandomID, initFirebase } from '../../src'
 import { createSnapshot, extractRefs } from '../../../src/firestore/utils'
-import {
-  Key,
-  db,
-  DocumentReference,
-  GeoPoint,
-  DocumentSnapshot,
-  Timestamp,
-  CollectionReference,
-} from '../../src'
+
+beforeAll(() => {
+  initFirebase()
+})
 
 describe('Firestore utils', () => {
-  let doc: DocumentSnapshot,
-    snapshot: any,
-    collection: CollectionReference,
-    docRef: DocumentReference
+  let doc: firebase.firestore.DocumentSnapshot,
+    snapshot: firebase.firestore.DocumentData,
+    collection: firebase.firestore.CollectionReference,
+    docRef: firebase.firestore.DocumentReference
 
-  beforeEach(() => {
-    collection = db.collection()
-    docRef = new DocumentReference({
-      collection,
-      id: new Key(),
-      data: {},
-      index: 0,
-    })
-    doc = new DocumentSnapshot(null, new Key(), {
+  beforeEach(async () => {
+    collection = firebase.firestore().collection(generateRandomID())
+    docRef = await collection.add({})
+
+    const docTest = await collection.add({
       n: 42,
       is: true,
       items: [{ text: 'foo' }],
       ref: docRef,
     })
-    // @ts-ignore
+    doc = await docTest.get()
+
     snapshot = createSnapshot(doc)
   })
 
   it('createSnapshot adds an id', () => {
-    expect(snapshot.id).toMatch(/^\d+$/)
+    expect(snapshot.id).toMatch(/^[\d|a-zA-Z]+$/)
   })
 
   it('id is not enumerable', () => {
@@ -51,7 +45,7 @@ describe('Firestore utils', () => {
   })
 
   it('extract refs from document', () => {
-    const [noRefsDoc, refs] = extractRefs(doc.data(), undefined, {})
+    const [noRefsDoc, refs] = extractRefs(doc.data()!, undefined, {})
     expect(noRefsDoc.ref).toBe(docRef.path)
     expect(refs).toEqual({
       ref: docRef,
@@ -74,7 +68,7 @@ describe('Firestore utils', () => {
   })
 
   it('leave Timestamps objects alone when extracting refs', () => {
-    const d = new Timestamp(10, 10)
+    const d = new firebase.firestore.Timestamp(10, 10)
     const [doc, refs] = extractRefs(
       {
         foo: 1,
@@ -89,7 +83,7 @@ describe('Firestore utils', () => {
   })
 
   it('leave GeoPoint objects alone when extracting refs', () => {
-    const d = new GeoPoint(2, 48)
+    const d = new firebase.firestore.GeoPoint(2, 48)
     const [doc, refs] = extractRefs(
       {
         foo: 1,
@@ -158,12 +152,7 @@ describe('Firestore utils', () => {
   })
 
   it('extracts refs from array', async () => {
-    const docRef2 = new DocumentReference({
-      collection,
-      id: new Key(),
-      data: {},
-      index: 0,
-    })
+    const docRef2 = await collection.add({})
     const [noRefsDoc, refs] = extractRefs(
       {
         arr: [docRef, docRef2, docRef],

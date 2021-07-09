@@ -1,23 +1,34 @@
+import firebase from 'firebase'
 import { firestorePlugin } from '../../../src'
-import { db } from '../../src'
 import * as firestore from '@firebase/firestore-types'
 import { mount } from '@vue/test-utils'
+import { initFirebase } from '../../src'
+
+beforeAll(() => {
+  initFirebase()
+})
 
 // FIXME: implement merging strategies
 describe.skip('Firestore: option merging', () => {
   function createMixins() {
-    // @ts-ignore
-    const a1: firestore.CollectionReference = db.collection(1)
-    // @ts-ignore
-    const b1: firestore.CollectionReference = db.collection(2)
-    // @ts-ignore
-    const a2: firestore.CollectionReference = db.collection(3)
-    // @ts-ignore
-    const c2: firestore.CollectionReference = db.collection(4)
-    // @ts-ignore
-    const a3: firestore.CollectionReference = db.collection(5)
-    // @ts-ignore
-    const c3: firestore.CollectionReference = db.collection(6)
+    const a1: firestore.CollectionReference = firebase
+      .firestore()
+      .collection('1')
+    const b1: firestore.CollectionReference = firebase
+      .firestore()
+      .collection('2')
+    const a2: firestore.CollectionReference = firebase
+      .firestore()
+      .collection('3')
+    const c2: firestore.CollectionReference = firebase
+      .firestore()
+      .collection('4')
+    const a3: firestore.CollectionReference = firebase
+      .firestore()
+      .collection('5')
+    const c3: firestore.CollectionReference = firebase
+      .firestore()
+      .collection('6')
 
     const mWithObjA = {
       firestore: {
@@ -65,9 +76,9 @@ describe.skip('Firestore: option merging', () => {
     expect(vm.$firestoreRefs.a).toBe(mWithObjB.firestore.a)
     expect(vm.$firestoreRefs.b).toBe(mWithObjA.firestore.b)
     expect(vm.$firestoreRefs).toEqual({
-      a: db.collection(3),
-      b: db.collection(2),
-      c: db.collection(4),
+      a: firebase.firestore().collection('3'),
+      b: firebase.firestore().collection('2'),
+      c: firebase.firestore().collection('4'),
     })
   })
 
@@ -75,8 +86,8 @@ describe.skip('Firestore: option merging', () => {
     const { mWithFn } = createMixins()
     const { vm } = factory({ mixins: [mWithFn] })
     expect(vm.$firestoreRefs).toEqual({
-      a: db.collection(5),
-      c: db.collection(6),
+      a: firebase.firestore().collection('5'),
+      c: firebase.firestore().collection('6'),
     })
   })
 
@@ -84,9 +95,9 @@ describe.skip('Firestore: option merging', () => {
     const { mWithFn, mWithObjA, mWithObjB } = createMixins()
     const { vm } = factory({ mixins: [mWithObjA, mWithObjB, mWithFn] })
     expect(vm.$firestoreRefs).toEqual({
-      a: db.collection(5),
-      b: db.collection(2),
-      c: db.collection(6),
+      a: firebase.firestore().collection('5'),
+      b: firebase.firestore().collection('2'),
+      c: firebase.firestore().collection('6'),
     })
   })
 })

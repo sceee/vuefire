@@ -1,11 +1,16 @@
+import firebase from 'firebase'
 import {
   bindDocument,
   firestoreOptions,
   bindCollection,
 } from '../../../src/core'
-import { db, createOps } from '../../src'
+import { createOps, generateRandomID, initFirebase } from '../../src'
 import * as firestore from '@firebase/firestore-types'
 import { Ref, ref } from 'vue'
+
+beforeAll(() => {
+  initFirebase()
+})
 
 describe('options', () => {
   let collection: firestore.CollectionReference,
@@ -16,12 +21,10 @@ describe('options', () => {
   const ops = createOps()
 
   beforeEach(async () => {
-    // @ts-ignore
-    collection = db.collection()
-    // @ts-ignore
+    collection = firebase.firestore().collection(generateRandomID())
     document = collection.doc()
     target = ref({})
-    await document.update({ foo: 'foo' })
+    await document.set({ foo: 'foo' })
   })
 
   it('allows customizing serialize when calling bindDocument', async () => {
@@ -33,7 +36,6 @@ describe('options', () => {
     })
     expect(spy).toHaveBeenCalledTimes(1)
     expect(spy).toHaveBeenCalledWith(
-      // @ts-ignore WTF TS?????
       expect.objectContaining({ data: expect.any(Function) })
     )
     expect(target.value).toEqual({ bar: 'foo' })
@@ -50,7 +52,6 @@ describe('options', () => {
     })
     expect(spy).toHaveBeenCalledTimes(1)
     expect(spy).toBeCalledWith(
-      // @ts-ignore WTF TS?????
       expect.objectContaining({ data: expect.any(Function) })
     )
     expect(target.value).toEqual([{ bar: 'foo' }])
@@ -67,7 +68,6 @@ describe('options', () => {
     })
     expect(spy).toHaveBeenCalledTimes(1)
     expect(spy).toBeCalledWith(
-      // @ts-ignore WTF TS?????
       expect.objectContaining({ data: expect.any(Function) })
     )
     expect(target.value).toEqual({ bar: 'foo' })
@@ -86,7 +86,6 @@ describe('options', () => {
     })
     expect(spy).toHaveBeenCalledTimes(1)
     expect(spy).toBeCalledWith(
-      // @ts-ignore WTF TS?????
       expect.objectContaining({ data: expect.any(Function) })
     )
     expect(target.value).toEqual([{ bar: 'foo' }])

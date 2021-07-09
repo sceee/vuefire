@@ -1,8 +1,13 @@
+import firebase from 'firebase'
 import { firestorePlugin } from '../../../src'
-import { db, tick } from '../../src'
+import { generateRandomID, initFirebase, tick } from '../../src'
 import * as firestore from '@firebase/firestore-types'
 import { ComponentPublicInstance } from 'vue'
 import { mount, VueWrapper } from '@vue/test-utils'
+
+beforeAll(() => {
+  initFirebase()
+})
 
 describe('Firestore: firestore option', () => {
   let collection: firestore.CollectionReference
@@ -10,8 +15,7 @@ describe('Firestore: firestore option', () => {
   let vm: ComponentPublicInstance & { items: any[]; item: any }
   let wrapper: VueWrapper<ComponentPublicInstance & { items: any[]; item: any }>
   beforeEach(async () => {
-    // @ts-ignore
-    collection = db.collection()
+    collection = firebase.firestore().collection(generateRandomID())
     document = collection.doc()
     wrapper = mount(
       {

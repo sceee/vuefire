@@ -1,6 +1,11 @@
+import firebase from 'firebase'
 import { mount } from '@vue/test-utils'
 import { rtdbPlugin } from '../../../src'
-import { MockFirebase } from '../../src'
+import { generateRandomID, initFirebase } from '../../src'
+
+beforeAll(() => {
+  initFirebase()
+})
 
 describe('RTDB: plugin options', () => {
   it('allows customizing $rtdbBind', () => {
@@ -40,17 +45,16 @@ describe('RTDB: plugin options', () => {
       }
     )
 
-    const items = new MockFirebase().child('data')
+    const items = firebase.database().ref(generateRandomID())
 
     const p = vm.$rtdbBind('items', items)
-    items.push({ text: 'foo' })
-    items.flush()
+    await items.push({ text: 'foo' })
+    //items.flush()
 
     await p
 
     expect(pluginOptions.serialize).toHaveBeenCalledTimes(1)
     expect(pluginOptions.serialize).toHaveBeenCalledWith(
-      // @ts-ignore WTF TS?????
       expect.objectContaining({ val: expect.any(Function) })
     )
     expect(vm.items).toEqual([{ foo: 'bar' }])
@@ -61,7 +65,7 @@ describe('RTDB: plugin options', () => {
       serialize: jest.fn(() => ({ foo: 'bar' })),
     }
 
-    const items = new MockFirebase().child('data')
+    const items = firebase.database().ref(generateRandomID())
     const { vm } = mount(
       {
         template: 'no',
@@ -77,15 +81,14 @@ describe('RTDB: plugin options', () => {
     const spy = jest.fn(() => ({ bar: 'bar' }))
 
     const p = vm.$rtdbBind('items', items, { serialize: spy })
-    items.push({ text: 'foo' })
-    items.flush()
+    await items.push({ text: 'foo' })
+    //items.flush()
 
     await p
 
     expect(pluginOptions.serialize).not.toHaveBeenCalled()
     expect(spy).toHaveBeenCalledTimes(1)
     expect(spy).toHaveBeenCalledWith(
-      // @ts-ignore WTF TS?????
       expect.objectContaining({ val: expect.any(Function) })
     )
     expect(vm.items).toEqual([{ bar: 'bar' }])

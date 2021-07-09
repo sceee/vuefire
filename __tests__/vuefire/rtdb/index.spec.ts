@@ -1,10 +1,15 @@
+import firebase from 'firebase'
 import { mount } from '@vue/test-utils'
 import { rtdbPlugin } from '../../../src'
-import { tick, MockFirebase } from '../../src'
+import { generateRandomID, initFirebase, tick } from '../../src'
+
+beforeAll(() => {
+  initFirebase()
+})
 
 describe('RTDB: firebase option', () => {
   async function createVm() {
-    const source = new MockFirebase().child('data')
+    const source = firebase.database().ref(generateRandomID())
     const wrapper = mount(
       {
         template: 'no',

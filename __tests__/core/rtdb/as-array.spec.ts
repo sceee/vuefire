@@ -1,10 +1,15 @@
+import firebase from 'firebase/app'
 import { rtdbBindAsArray } from '../../../src/core'
-import { MockFirebase, createOps, MockedReference } from '../../src'
+import { createOps, generateRandomID, initFirebase } from '../../src'
 import { ResetOption } from '../../../src/shared'
 import { ref, Ref } from 'vue'
 
+beforeAll(() => {
+  initFirebase()
+})
+
 describe('RTDB collection', () => {
-  let collection: MockedReference,
+  let collection: firebase.database.Reference,
     target: Ref<Record<string, any>>,
     resolve: (data: any) => void,
     reject: (error: any) => void,
@@ -12,7 +17,7 @@ describe('RTDB collection', () => {
   const ops = createOps()
 
   beforeEach(async () => {
-    collection = new MockFirebase().child('data')
+    collection = firebase.database().ref(generateRandomID())
     target = ref([])
     await new Promise((res, rej) => {
       resolve = jest.fn(res)
@@ -24,15 +29,15 @@ describe('RTDB collection', () => {
         reject,
         ops,
       })
-      collection.flush()
+      //// collection.flush()
     })
   })
 
-  it('sets a collection', () => {
-    collection.push({ name: 'one' })
-    collection.push({ name: 'two' })
-    collection.push({ name: 'three' })
-    collection.flush()
+  it('sets a collection', async () => {
+    await collection.push({ name: 'one' })
+    await collection.push({ name: 'two' })
+    await collection.push({ name: 'three' })
+    // collection.flush()
     expect(target.value).toEqual([
       { name: 'one' },
       { name: 'two' },
@@ -40,26 +45,26 @@ describe('RTDB collection', () => {
     ])
   })
 
-  it('removes elements', () => {
-    collection.push({ name: 'one' })
-    collection.push({ name: 'two' })
-    collection.push({ name: 'three' })
-    collection.flush()
-    collection.child(target.value[1]['.key']).remove()
-    collection.flush()
+  it('removes elements', async () => {
+    await collection.push({ name: 'one' })
+    await collection.push({ name: 'two' })
+    await collection.push({ name: 'three' })
+    // collection.flush()
+    await collection.child(target.value[1]['.key']).remove()
+    // collection.flush()
     expect(target.value).toEqual([{ name: 'one' }, { name: 'three' }])
   })
 
   it('stops listening to events when unbound', async () => {
-    collection.push({ name: 'one' })
-    collection.push({ name: 'two' })
-    collection.push({ name: 'three' })
-    collection.flush()
-    const items = new MockFirebase().child('other')
-    items.push({ other: 'one' })
-    items.push({ other: 'two' })
-    items.push({ other: 'three' })
-    items.flush()
+    await collection.push({ name: 'one' })
+    await collection.push({ name: 'two' })
+    await collection.push({ name: 'three' })
+    // collection.flush()
+    const items = firebase.database().ref(generateRandomID())
+    await items.push({ other: 'one' })
+    await items.push({ other: 'two' })
+    await items.push({ other: 'three' })
+    //items.flush()
 
     unbind()
     await new Promise((resolve, reject) => {
@@ -70,7 +75,7 @@ describe('RTDB collection', () => {
         reject,
         ops,
       })
-      items.flush()
+      //items.flush()
     })
 
     expect(target.value).toEqual([
@@ -81,10 +86,10 @@ describe('RTDB collection', () => {
   })
 
   it('reorder elements', async () => {
-    collection.push({ value: 3 })
-    collection.push({ value: 1 })
-    collection.push({ value: 2 })
-    collection.flush()
+    await collection.push({ value: 3 })
+    await collection.push({ value: 1 })
+    await collection.push({ value: 2 })
+    // collection.flush()
 
     const originalOn = collection.on
     let childChangedCb = jest.fn()
@@ -110,7 +115,7 @@ describe('RTDB collection', () => {
         reject,
         ops,
       })
-      collection.flush()
+      // collection.flush()
     })
 
     expect(target.value).toEqual([{ value: 3 }, { value: 1 }, { value: 2 }])
@@ -137,17 +142,17 @@ describe('RTDB collection', () => {
     mock.mockClear()
   })
 
-  it('updates an item', () => {
-    collection.push({ name: 'foo' })
-    collection.flush()
-    collection.child(target.value[0]['.key']).set({ name: 'bar' })
-    collection.flush()
+  it('updates an item', async () => {
+    await collection.push({ name: 'foo' })
+    // collection.flush()
+    await collection.child(target.value[0]['.key']).set({ name: 'bar' })
+    // collection.flush()
     expect(target.value).toEqual([{ name: 'bar' }])
   })
 
-  it('resets the value when unbinding', () => {
-    collection.push({ name: 'foo' })
-    collection.flush()
+  it('resets the value when unbinding', async () => {
+    await collection.push({ name: 'foo' })
+    // collection.flush()
     expect(target.value).toEqual([{ name: 'foo' }])
     unbind()
     expect(target.value).toEqual([])
@@ -165,11 +170,11 @@ describe('RTDB collection', () => {
         reject,
         ops,
       })
-      collection.flush()
+      // collection.flush()
     })
     await promise
-    collection.push({ foo: 'foo' })
-    collection.flush()
+    await collection.push({ foo: 'foo' })
+    // collection.flush()
     expect(target.value).toEqual([{ foo: 'foo' }])
     unbind(false)
     expect(target.value).toEqual([{ foo: 'foo' }])
@@ -187,11 +192,11 @@ describe('RTDB collection', () => {
         reject,
         ops,
       })
-      collection.flush()
+      // collection.flush()
     })
     await promise
-    collection.push({ foo: 'foo' })
-    collection.flush()
+    await collection.push({ foo: 'foo' })
+    // collection.flush()
     expect(target.value).toEqual([{ foo: 'foo' }])
     unbind(() => [{ bar: 'bar' }])
     expect(target.value).toEqual([{ bar: 'bar' }])
@@ -207,21 +212,21 @@ describe('RTDB collection', () => {
         // will have no effect when unbinding
         { reset: () => ['Foo'] }
       )
-      collection.flush()
+      // collection.flush()
     })
     await promise
-    collection.push({ foo: 'foo' })
-    collection.flush()
+    await collection.push({ foo: 'foo' })
+    // collection.flush()
     unbind()
     expect(target.value).toEqual([])
   })
 
   it('can wait until ready', async () => {
-    collection.push({ name: 'one' })
-    collection.push({ name: 'two' })
-    collection.flush()
+    await collection.push({ name: 'one' })
+    await collection.push({ name: 'two' })
+    // collection.flush()
 
-    const other = new MockFirebase().child('other')
+    const other = firebase.database().ref(generateRandomID())
 
     expect(target.value).toEqual([{ name: 'one' }, { name: 'two' }])
 
@@ -241,13 +246,13 @@ describe('RTDB collection', () => {
     })
 
     expect(target.value).toEqual([{ name: 'one' }, { name: 'two' }])
-    other.flush()
+    //other.flush()
     await promise
     expect(target.value).toEqual([])
 
-    other.push({ other: 'one' })
-    other.push({ other: 'two' })
-    other.flush()
+    await other.push({ other: 'one' })
+    await other.push({ other: 'two' })
+    //other.flush()
 
     expect(target.value).toEqual([{ other: 'one' }, { other: 'two' }])
   })
@@ -255,10 +260,10 @@ describe('RTDB collection', () => {
   it('can wait until ready with empty arrays', async () => {
     expect(target.value).toEqual([])
 
-    const other = new MockFirebase().child('other')
-    other.push({ a: 0 })
-    other.push({ b: 1 })
-    other.flush()
+    const other = firebase.database().ref(generateRandomID())
+    await other.push({ a: 0 })
+    await other.push({ b: 1 })
+    //other.flush()
 
     unbind(false)
     const promise = new Promise((resolve, reject) => {
@@ -275,15 +280,15 @@ describe('RTDB collection', () => {
     })
 
     expect(target.value).toEqual([])
-    other.flush()
+    //other.flush()
     await promise
     expect(target.value).toEqual([{ a: 0 }, { b: 1 }])
   })
 
   it('rejects when errors', async () => {
     const error = new Error()
-    const collection = new MockFirebase().child('data')
-    collection.failNext('once', error)
+    const collection = firebase.database().ref(generateRandomID())
+    //collection.failNext('once', error)
     const target = ref([])
     await expect(
       new Promise((resolve, reject) => {
@@ -294,7 +299,7 @@ describe('RTDB collection', () => {
           reject,
           ops,
         })
-        collection.flush()
+        // collection.flush()
       })
     ).rejects.toBe(error)
   })

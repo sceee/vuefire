@@ -1,10 +1,14 @@
+import firebase from 'firebase'
 import { firestorePlugin } from '../../../src'
-import { db } from '../../src'
 import { mount } from '@vue/test-utils'
-import * as firestore from '@firebase/firestore-types'
 import { defineComponent } from 'vue'
+import { generateRandomID, initFirebase } from '../../src'
 
 const component = defineComponent({ template: 'no' })
+
+beforeAll(() => {
+  initFirebase()
+})
 
 describe('Firestore: plugin options', () => {
   it('allows customizing $rtdbBind', () => {
@@ -41,15 +45,13 @@ describe('Firestore: plugin options', () => {
       }
     )
 
-    // @ts-ignore
-    const items: firestore.CollectionReference = db.collection()
+    const items = firebase.firestore().collection(generateRandomID())
     await items.add({})
 
     await wrapper.vm.$bind('items', items)
 
     expect(pluginOptions.serialize).toHaveBeenCalledTimes(1)
     expect(pluginOptions.serialize).toHaveBeenCalledWith(
-      // @ts-ignore WTF TS?????
       expect.objectContaining({ data: expect.any(Function) })
     )
     expect(wrapper.vm.items).toEqual([{ foo: 'bar' }])
@@ -71,8 +73,7 @@ describe('Firestore: plugin options', () => {
       }
     )
 
-    // @ts-ignore
-    const items: firestore.CollectionReference = db.collection()
+    const items = firebase.firestore().collection(generateRandomID())
     await items.add({})
 
     const spy = jest.fn(() => ({ bar: 'bar' }))
@@ -82,7 +83,6 @@ describe('Firestore: plugin options', () => {
     expect(pluginOptions.serialize).not.toHaveBeenCalled()
     expect(spy).toHaveBeenCalledTimes(1)
     expect(spy).toHaveBeenCalledWith(
-      // @ts-ignore WTF TS?????
       expect.objectContaining({ data: expect.any(Function) })
     )
     expect(wrapper.vm.items).toEqual([{ bar: 'bar' }])

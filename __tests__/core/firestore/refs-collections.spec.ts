@@ -1,5 +1,13 @@
+import firebase from 'firebase'
 import { bindCollection, FirestoreOptions } from '../../../src/core'
-import { db, delay, spyUnbind, delayUpdate, createOps } from '../../src'
+import {
+  delay,
+  spyUnbind,
+  delayUpdate,
+  createOps,
+  initFirebase,
+  generateRandomID,
+} from '../../src'
 import { OperationsType } from '../../../src/shared'
 import * as firestore from '@firebase/firestore-types'
 import { ref } from 'vue'
@@ -11,6 +19,10 @@ const buildRefs = () => ({
   c: ref(),
 })
 
+beforeAll(() => {
+  initFirebase()
+})
+
 describe('refs in collections', () => {
   let collection: firestore.CollectionReference,
     a: firestore.DocumentReference,
@@ -20,10 +32,10 @@ describe('refs in collections', () => {
       key: keyof ReturnType<typeof buildRefs>,
       collection: firestore.CollectionReference,
       options?: FirestoreOptions
-    ) => void,
+    ) => Promise<void>,
     unbind: () => void,
     ops: OperationsType,
-    first: Record<string, any>
+    first: firebase.firestore.DocumentReference<firebase.firestore.DocumentData>
 
   beforeEach(async () => {
     target = buildRefs()
@@ -41,14 +53,11 @@ describe('refs in collections', () => {
           ))
       )
     }
-    // @ts-ignore
-    a = db.collection().doc()
-    // @ts-ignore
-    b = db.collection().doc()
-    await a.update({ isA: true })
-    await b.update({ isB: true })
-    // @ts-ignore
-    collection = db.collection()
+    a = firebase.firestore().collection(generateRandomID()).doc()
+    b = firebase.firestore().collection(generateRandomID()).doc()
+    await a.set({ isA: true })
+    await b.set({ isB: true })
+    collection = firebase.firestore().collection(generateRandomID())
     first = await collection.add({ ref: a })
     await collection.add({ ref: b })
   })
@@ -56,53 +65,57 @@ describe('refs in collections', () => {
   it('binds refs on collections', async () => {
     await bind('items', collection)
 
-    expect(target.items.value).toEqual([
-      { ref: { isA: true } },
-      { ref: { isB: true } },
-    ])
+    expect(target.items.value).toHaveLength(2)
+    expect(target.items.value).toEqual(
+      expect.arrayContaining([{ ref: { isA: true } }, { ref: { isB: true } }])
+    )
   })
 
   it('waits for array to be fully populated', async () => {
-    const c = db.collection().doc()
-    await c.update({ isC: true })
+    const c = firebase.firestore().collection(generateRandomID()).doc()
+    await c.set({ isC: true })
     await collection.add({ ref: c })
     // force callback delay
 
-    // @ts-ignore
     delayUpdate(c)
     const data = await bind('items', collection)
 
     expect(data).toEqual(target.items.value)
-    expect(target.items.value).toEqual([
-      { ref: { isA: true } },
-      { ref: { isB: true } },
-      { ref: { isC: true } },
-    ])
+    expect(target.items.value).toHaveLength(3)
+    expect(target.items.value).toEqual(
+      expect.arrayContaining([
+        { ref: { isA: true } },
+        { ref: { isB: true } },
+        { ref: { isC: true } },
+      ])
+    )
   })
 
   it('binds refs when adding to collection', async () => {
     await bind('items', collection)
-    const c = db.collection().doc()
-    await c.update({ isC: true })
+    const c = firebase.firestore().collection(generateRandomID()).doc()
+    await c.set({ isC: true })
 
     await collection.add({ ref: c })
     // wait for refs to update
     await delay(5)
 
-    expect(target.items.value).toEqual([
-      { ref: { isA: true } },
-      { ref: { isB: true } },
-      { ref: { isC: true } },
-    ])
+    expect(target.items.value).toHaveLength(3)
+    expect(target.items.value).toEqual(
+      expect.arrayContaining([
+        { ref: { isA: true } },
+        { ref: { isB: true } },
+        { ref: { isC: true } },
+      ])
+    )
   })
 
   it('unbinds refs when the collection is unbound', async () => {
-    const items = db.collection()
+    const items = firebase.firestore().collection(generateRandomID())
     const spyA = spyUnbind(a)
     const spyB = spyUnbind(b)
     await items.add({ ref: a })
     await items.add({ ref: b })
-    // @ts-ignore
     await bind('items', items)
 
     expect(spyA).toHaveBeenCalledTimes(0)
@@ -118,10 +131,9 @@ describe('refs in collections', () => {
   })
 
   it('unbinds nested refs when the collection is unbound', async () => {
-    const items = db.collection()
+    const items = firebase.firestore().collection(generateRandomID())
     const spyA = spyUnbind(a)
     await items.add({ ref: { ref: a } })
-    // @ts-ignore
     await bind('items', items)
 
     expect(spyA).toHaveBeenCalledTimes(0)
@@ -161,26 +173,33 @@ describe('refs in collections', () => {
     await first.update({ newThing: true })
     await delay(5)
 
-    expect(target.items.value).toEqual([
-      { ref: { isA: true }, newThing: true },
-      { ref: { isB: true } },
-    ])
+    expect(target.items.value).toHaveLength(2)
+    expect(target.items.value).toEqual(
+      expect.arrayContaining([
+        { ref: { isA: true }, newThing: true },
+        { ref: { isB: true } },
+      ])
+    )
   })
 
   it('keeps old data of refs when modifying an item', async () => {
     await bind('items', collection)
     await first.update({ newThing: true })
 
-    expect(target.items.value[0]).toEqual({
-      ref: { isA: true },
-      newThing: true,
-    })
+    expect(target.items.value).toEqual(
+      expect.arrayContaining([
+        {
+          ref: { isA: true },
+          newThing: true,
+        },
+      ])
+    )
   })
 
   it('does not lose empty references in objects when updating a property', async () => {
-    // @ts-ignore
-    const items: firestore.CollectionReference = db.collection()
+    const items = firebase.firestore().collection(generateRandomID())
     const emptyItem = collection.doc()
+
     const item = await items.add({ o: { ref: emptyItem }, toggle: true })
     await bind('items', items)
     expect(target.items.value).toEqual([
@@ -190,27 +209,34 @@ describe('refs in collections', () => {
       },
     ])
     await items.add({ foo: 'bar' })
-    expect(target.items.value).toEqual([
-      {
-        o: { ref: null },
-        toggle: true,
-      },
-      { foo: 'bar' },
-    ])
+
+    expect(target.items.value).toHaveLength(2)
+    expect(target.items.value).toEqual(
+      expect.arrayContaining([
+        { foo: 'bar' },
+        {
+          o: { ref: null },
+          toggle: true,
+        },
+      ])
+    )
     await item.update({ toggle: false })
-    expect(target.items.value).toEqual([
-      {
-        o: { ref: null },
-        toggle: false,
-      },
-      { foo: 'bar' },
-    ])
+    expect(target.items.value).toHaveLength(2)
+    expect(target.items.value).toEqual(
+      expect.arrayContaining([
+        {
+          o: { ref: null },
+          toggle: false,
+        },
+        { foo: 'bar' },
+      ])
+    )
   })
 
   it('does not lose empty references in arrays when updating a property', async () => {
-    // @ts-ignore
-    const items: firestore.CollectionReference = db.collection()
+    const items = firebase.firestore().collection(generateRandomID())
     const emptyItem = collection.doc()
+
     const item = await items.add({ a: [emptyItem], toggle: true })
     await bind('items', items)
     expect(target.items.value).toEqual([
@@ -220,26 +246,31 @@ describe('refs in collections', () => {
       },
     ])
     await items.add({ foo: 'bar' })
-    expect(target.items.value).toEqual([
-      {
-        a: [null],
-        toggle: true,
-      },
-      { foo: 'bar' },
-    ])
+    expect(target.items.value).toHaveLength(2)
+    expect(target.items.value).toEqual(
+      expect.arrayContaining([
+        {
+          a: [null],
+          toggle: true,
+        },
+        { foo: 'bar' },
+      ])
+    )
     await item.update({ toggle: false })
-    expect(target.items.value).toEqual([
-      {
-        a: [null],
-        toggle: false,
-      },
-      { foo: 'bar' },
-    ])
+    expect(target.items.value).toHaveLength(2)
+    expect(target.items.value).toEqual(
+      expect.arrayContaining([
+        {
+          a: [null],
+          toggle: false,
+        },
+        { foo: 'bar' },
+      ])
+    )
   })
 
   it('keeps array of references when updating a property', async () => {
-    // @ts-ignore
-    const items: firestore.CollectionReference = db.collection()
+    const items = firebase.firestore().collection(generateRandomID())
     const c = collection.doc()
     const item = await items.add({ a: [a, b, c, { foo: 'bar' }], toggle: true })
     await bind('items', items)
@@ -250,36 +281,41 @@ describe('refs in collections', () => {
       },
     ])
     await items.add({ foo: 'bar' })
-    expect(target.items.value).toEqual([
-      {
-        a: [{ isA: true }, { isB: true }, null, { foo: 'bar' }],
-        toggle: true,
-      },
-      { foo: 'bar' },
-    ])
+    expect(target.items.value).toHaveLength(2)
+    expect(target.items.value).toEqual(
+      expect.arrayContaining([
+        {
+          a: [{ isA: true }, { isB: true }, null, { foo: 'bar' }],
+          toggle: true,
+        },
+        { foo: 'bar' },
+      ])
+    )
     await item.update({ toggle: false })
-    expect(target.items.value).toEqual([
-      {
-        a: [{ isA: true }, { isB: true }, null, { foo: 'bar' }],
-        toggle: false,
-      },
-      { foo: 'bar' },
-    ])
+    expect(target.items.value).toHaveLength(2)
+    expect(target.items.value).toEqual(
+      expect.arrayContaining([
+        {
+          a: [{ isA: true }, { isB: true }, null, { foo: 'bar' }],
+          toggle: false,
+        },
+        { foo: 'bar' },
+      ])
+    )
   })
 
   it('respects provided maxRefDepth', async () => {
-    const a = db.collection().doc()
-    const b = db.collection().doc()
-    const c = db.collection().doc()
-    const d = db.collection().doc()
+    const a = firebase.firestore().collection(generateRandomID()).doc()
+    const b = firebase.firestore().collection(generateRandomID()).doc()
+    const c = firebase.firestore().collection(generateRandomID()).doc()
+    const d = firebase.firestore().collection(generateRandomID()).doc()
     await a.set({ b })
     await b.set({ c })
     await d.set({ isD: true })
     await c.set({ d })
-    const collection = db.collection()
+    const collection = firebase.firestore().collection(generateRandomID())
     await collection.add({ a })
 
-    // @ts-ignore
     await bind('items', collection, { maxRefDepth: 1 })
     expect(target.items.value).toEqual([
       {
@@ -289,7 +325,6 @@ describe('refs in collections', () => {
       },
     ])
 
-    // @ts-ignore
     await bind('items', collection, { maxRefDepth: 3 })
     expect(target.items.value).toEqual([
       {
@@ -305,11 +340,10 @@ describe('refs in collections', () => {
   })
 
   it('does not fail with cyclic refs', async () => {
-    const item = db.collection().doc()
+    const item = firebase.firestore().collection(generateRandomID()).doc()
     await item.set({ item })
-    const collection = db.collection()
+    const collection = firebase.firestore().collection(generateRandomID())
     await collection.add({ item })
-    // @ts-ignore
     await bind('items', collection, { maxRefDepth: 5 })
 
     expect(target.items.value).toEqual([

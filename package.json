@@ -24,7 +24,8 @@
     "lint:fix": "yarn run lint --write",
     "lint:eslint": "eslint .",
     "test:types": "tsc --build tsconfig.json",
-    "test:unit": "firebase emulators:exec \"jest --coverage\"",
+    "test:unit": "firebase emulators:exec \"npm run test:unit:execute\"",
+    "test:unit:execute": "jest --coverage",
     "test": "yarn run test:types && yarn run test:unit && yarn run build && yarn run build:dts"
   },
   "files": [
@@ -62,7 +63,6 @@
     "conventional-changelog-cli": "^2.0.34",
     "eslint": "^7.30.0",
     "firebase": "^8.1.2",
-    "firebase-mock": "^2.3.2",
     "focus-visible": "^5.2.0",
     "jest": "^26.2.2",
     "lint-staged": "^11.0.0",

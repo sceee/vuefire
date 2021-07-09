@@ -1,8 +1,13 @@
+import firebase from 'firebase'
 import { bindCollection } from '../../../src/core'
-import { db, createOps, spyUnbind } from '../../src'
+import { createOps, generateRandomID, initFirebase, spyUnbind } from '../../src'
 import * as firestore from '@firebase/firestore-types'
 import { OperationsType } from '../../../src/core'
 import { ref, Ref } from 'vue'
+
+beforeAll(() => {
+  initFirebase()
+})
 
 describe('collections', () => {
   let collection: firestore.CollectionReference,
@@ -13,8 +18,7 @@ describe('collections', () => {
     unbind: ReturnType<typeof bindCollection>
 
   beforeEach(async () => {
-    // @ts-ignore
-    collection = db.collection()
+    collection = firebase.firestore().collection(generateRandomID())
     target = ref({})
     ops = createOps()
     await new Promise((res, rej) => {
@@ -92,10 +96,10 @@ describe('collections', () => {
   })
 
   it('adds non-enumerable id', async () => {
-    const a = await collection.doc('u0')
-    const b = await collection.doc('u1')
-    await a.update({})
-    await b.update({})
+    const a = collection.doc('u0')
+    const b = collection.doc('u1')
+    await a.set({})
+    await b.set({})
     expect(target.value.length).toBe(2)
     target.value.forEach((item: Record<string, any>, i: number) => {
       expect(Object.getOwnPropertyDescriptor(item, 'id')).toEqual({
@@ -108,8 +112,7 @@ describe('collections', () => {
   })
 
   it('manually unbinds a collection', async () => {
-    // @ts-ignore
-    collection = db.collection()
+    collection = firebase.firestore().collection(generateRandomID())
     await collection.add({ text: 'foo' })
     const unbindSpy = spyUnbind(collection)
     let unbind: () => void = () => {
@@ -136,8 +139,8 @@ describe('collections', () => {
     const fakeOnSnapshot = (_: any, fail: (error: Error) => void) => {
       fail(new Error('nope'))
     }
-    // @ts-ignore
-    collection = db.collection()
+
+    collection = firebase.firestore().collection(generateRandomID())
     // @ts-ignore
     collection.onSnapshot = jest.fn(fakeOnSnapshot)
     await expect(
@@ -202,8 +205,7 @@ describe('collections', () => {
   })
 
   it('ignores reset option in bind when calling unbind', async () => {
-    // @ts-ignore
-    const other: firestore.CollectionReference = db.collection()
+    const other = firebase.firestore().collection(generateRandomID())
     await other.add({ a: 0 })
     await other.add({ b: 1 })
 
@@ -212,7 +214,8 @@ describe('collections', () => {
         reset: false,
       })
     })
-    expect(target.value).toEqual([{ a: 0 }, { b: 1 }])
+    expect(target.value).toHaveLength(2)
+    expect(target.value).toEqual(expect.arrayContaining([{ a: 0 }, { b: 1 }]))
     unbind()
     expect(target.value).toEqual([])
   })
@@ -222,8 +225,7 @@ describe('collections', () => {
     await collection.add({ foo: 'foo' })
     expect(target.value).toEqual([{ foo: 'foo' }, { foo: 'foo' }])
 
-    // @ts-ignore
-    const other: firestore.CollectionReference = db.collection()
+    const other = firebase.firestore().collection(generateRandomID())
 
     // force the unbind without resetting the value
     unbind(false)
@@ -236,16 +238,25 @@ describe('collections', () => {
     // we can add other stuff
     await other.add({ a: 0 })
     await other.add({ b: 1 })
-    expect(target.value).toEqual([{ a: 0 }, { b: 1 }])
+
+    expect(target.value).toHaveLength(2)
+    expect(target.value).toEqual(expect.arrayContaining([{ a: 0 }, { b: 1 }]))
   })
 
   it('sets the value to an empty array even with no documents', async () => {
     // @ts-ignore
     target.value = 'foo'
     await new Promise((resolve, reject) => {
-      bindCollection(target, db.collection() as any, ops, resolve, reject, {
-        wait: true,
-      })
+      bindCollection(
+        target,
+        firebase.firestore().collection(generateRandomID()) as any,
+        ops,
+        resolve,
+        reject,
+        {
+          wait: true,
+        }
+      )
     })
     expect(target.value).toEqual([])
   })
@@ -254,8 +265,7 @@ describe('collections', () => {
     expect(target.value).toEqual([])
     expect(resolve).toHaveBeenCalledWith([])
 
-    // @ts-ignore
-    const other: firestore.CollectionReference = db.collection()
+    const other = firebase.firestore().collection(generateRandomID())
     await other.add({ a: 0 })
     await other.add({ b: 1 })
 
@@ -266,6 +276,7 @@ describe('collections', () => {
     })
     expect(target.value).toEqual([])
     await promise
-    expect(target.value).toEqual([{ a: 0 }, { b: 1 }])
+    expect(target.value).toHaveLength(2)
+    expect(target.value).toEqual(expect.arrayContaining([{ a: 0 }, { b: 1 }]))
   })
 })

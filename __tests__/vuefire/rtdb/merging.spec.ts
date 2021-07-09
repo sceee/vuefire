@@ -1,10 +1,15 @@
+import firebase from 'firebase'
 import { mount } from '@vue/test-utils'
 import { rtdbPlugin } from '../../../src'
-import { MockFirebase } from '../../src'
+import { generateRandomID, initFirebase } from '../../src'
+
+beforeAll(() => {
+  initFirebase()
+})
 
 function createMixins() {
-  const db = new MockFirebase().child('data')
-  db.autoFlush()
+  const db = firebase.database().ref(generateRandomID())
+  //db.autoFlush()
 
   const docs = [
     db.child('1'),
