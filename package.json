@@ -23,7 +23,7 @@
     "lint": "prettier -c --parser typescript \"{src,__tests__,e2e}/**/*.[jt]s?(x)\"",
     "lint:fix": "yarn run lint --write",
     "test:types": "tsc --build tsconfig.json",
-    "test:unit": "jest --coverage",
+    "test:unit": "firebase emulators:exec \"jest --coverage\"",
     "test": "yarn run test:types && yarn run test:unit && yarn run build && yarn run build:dts"
   },
   "files": [

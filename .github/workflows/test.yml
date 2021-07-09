@@ -1,0 +1,22 @@
+on:
+  push:
+
+name: Test
+
+jobs:
+  build:
+    name: Execute Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+      - name: Install firebase CLI
+        run: npm i -g firebase-tools
+      - name: Install dependencies
+        run: npm i
+      - name: Execute tests
+        run: npm run test:unit
