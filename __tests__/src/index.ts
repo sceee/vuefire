@@ -3,6 +3,8 @@ import 'firebase/firestore'
 import 'firebase/database'
 import { nextTick } from 'vue-demi'
 import { OperationsType, walkSet } from '../../src/core'
+import { inspect } from 'util'
+import { v4 as uuidv4 } from 'uuid'
 
 // Vue.config.productionTip = false
 // Vue.config.devtools = false
@@ -12,7 +14,7 @@ type FirestoreReference =
   | firebase.firestore.DocumentReference
   | firebase.firestore.Query
 
-export function spyUnbind(ref: FirestoreReference): jest.Mock<any, any> {
+export function spyUnbind(ref: FirestoreReference): jest.SpyInstance<any, any> {
   const unbindSpy = jest.fn()
   const onSnapshot = ref.onSnapshot.bind(ref)
   ref.onSnapshot =
@@ -28,7 +30,10 @@ export function spyUnbind(ref: FirestoreReference): jest.Mock<any, any> {
   return unbindSpy
 }
 
-export function spyOnSnapshot(ref: FirestoreReference) {
+export function spyOnSnapshot(
+  ref: FirestoreReference
+): jest.SpyInstance<any, any> {
+  //return jest.spyOn(ref, 'onSnapshot')
   const onSnapshot = ref.onSnapshot.bind(ref)
   // @ts-ignore
   return (ref.onSnapshot = jest.fn((...args) => onSnapshot(...args)))
@@ -36,17 +41,15 @@ export function spyOnSnapshot(ref: FirestoreReference) {
 
 export function spyOnSnapshotCallback(
   ref: FirestoreReference
-): jest.Mock<any, any> {
+): jest.SpyInstance<any, any> {
   const onSnapshot = ref.onSnapshot.bind(ref)
   const spy = jest.fn()
-  ref.onSnapshot = (fn: any) => {
-    console.log(`onSnapshot Called: ${fn}`)
+  ref.onSnapshot = (fn: any) =>
     // @ts-ignore
-    return onSnapshot((...args) => {
+    onSnapshot((...args) => {
       spy()
       fn(...args)
     })
-  }
   return spy
 }
 
@@ -74,10 +77,7 @@ export function delay(time: number): Promise<void> {
 
 type WalkSet = typeof walkSet
 export const createOps = (localWalkSet: WalkSet = walkSet): OperationsType => ({
-  add: jest.fn((array, index, data) => {
-    //console.log(`Add called: ${data}`)
-    array.splice(index, 0, data)
-  }),
+  add: jest.fn((array, index, data) => array.splice(index, 0, data)),
   set: jest.fn(localWalkSet),
   remove: jest.fn((array, index) => array.splice(index, 1)),
 })
@@ -98,5 +98,5 @@ export function initFirebase(): void {
 }
 
 export function generateRandomID(): string {
-  return Math.random().toString(16).slice(2)
+  return uuidv4()
 }

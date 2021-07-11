@@ -8,7 +8,7 @@ export type FirestoreReference =
 
 export function createSnapshot(
   doc: firestore.DocumentSnapshot
-): firestore.DocumentData {
+): Record<string, unknown> {
   // TODO: it should create a deep copy instead because otherwise we will modify internal data
   // defaults everything to false, so no need to set
   return Object.defineProperty(doc.data() || {}, 'id', { value: doc.id })

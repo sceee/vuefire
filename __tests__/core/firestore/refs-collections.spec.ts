@@ -118,10 +118,14 @@ describe('refs in collections', () => {
     await items.add({ ref: b })
     await bind('items', items)
 
+    await delay(200)
+
     expect(spyA).toHaveBeenCalledTimes(0)
     expect(spyB).toHaveBeenCalledTimes(0)
 
     unbind()
+
+    await delay(200)
 
     expect(spyA).toHaveBeenCalledTimes(1)
     expect(spyB).toHaveBeenCalledTimes(1)
@@ -135,10 +139,13 @@ describe('refs in collections', () => {
     const spyA = spyUnbind(a)
     await items.add({ ref: { ref: a } })
     await bind('items', items)
+    await delay(200)
 
     expect(spyA).toHaveBeenCalledTimes(0)
 
     unbind()
+    await delay(200)
+
     expect(spyA).toHaveBeenCalledTimes(1)
 
     spyA.mockRestore()
@@ -147,9 +154,16 @@ describe('refs in collections', () => {
   it('unbinds refs when items are removed', async () => {
     const spyA = spyUnbind(a)
     await bind('items', collection)
+    await delay(200)
+
     expect(spyA).toHaveBeenCalledTimes(0)
 
-    await collection.doc(target.items.value[0].id).delete()
+    const idToDelete = target.items.value[0].id
+    console.log(`Deleting ${idToDelete}`)
+    await collection.doc(idToDelete).delete()
+
+    await delay(200)
+
     expect(spyA).toHaveBeenCalledTimes(1)
 
     spyA.mockRestore()
@@ -158,9 +172,13 @@ describe('refs in collections', () => {
   it('unbinds refs when items are modified', async () => {
     const spyA = spyUnbind(a)
     await bind('items', collection)
+    await delay(200)
+
     expect(spyA).toHaveBeenCalledTimes(0)
 
     await first.set({ b })
+
+    await delay(200)
 
     expect(spyA).toHaveBeenCalledTimes(1)
 
@@ -171,7 +189,7 @@ describe('refs in collections', () => {
     await bind('items', collection)
 
     await first.update({ newThing: true })
-    await delay(5)
+    await delay(200)
 
     expect(target.items.value).toHaveLength(2)
     expect(target.items.value).toEqual(
@@ -202,6 +220,8 @@ describe('refs in collections', () => {
 
     const item = await items.add({ o: { ref: emptyItem }, toggle: true })
     await bind('items', items)
+    await delay(200)
+
     expect(target.items.value).toEqual([
       {
         o: { ref: null },
@@ -209,6 +229,8 @@ describe('refs in collections', () => {
       },
     ])
     await items.add({ foo: 'bar' })
+
+    await delay(200)
 
     expect(target.items.value).toHaveLength(2)
     expect(target.items.value).toEqual(
@@ -220,7 +242,10 @@ describe('refs in collections', () => {
         },
       ])
     )
-    await item.update({ toggle: false })
+    await item.set({ toggle: false }, { merge: true })
+
+    await delay(200)
+
     expect(target.items.value).toHaveLength(2)
     expect(target.items.value).toEqual(
       expect.arrayContaining([
@@ -235,10 +260,13 @@ describe('refs in collections', () => {
 
   it('does not lose empty references in arrays when updating a property', async () => {
     const items = firebase.firestore().collection(generateRandomID())
-    const emptyItem = collection.doc()
+    const emptyItem = collection.doc(generateRandomID())
 
     const item = await items.add({ a: [emptyItem], toggle: true })
     await bind('items', items)
+
+    await delay(200)
+
     expect(target.items.value).toEqual([
       {
         a: [null],
@@ -246,6 +274,9 @@ describe('refs in collections', () => {
       },
     ])
     await items.add({ foo: 'bar' })
+
+    await delay(200)
+
     expect(target.items.value).toHaveLength(2)
     expect(target.items.value).toEqual(
       expect.arrayContaining([
@@ -256,7 +287,10 @@ describe('refs in collections', () => {
         { foo: 'bar' },
       ])
     )
-    await item.update({ toggle: false })
+    await item.set({ toggle: false }, { merge: true })
+
+    await delay(200)
+
     expect(target.items.value).toHaveLength(2)
     expect(target.items.value).toEqual(
       expect.arrayContaining([
@@ -281,6 +315,9 @@ describe('refs in collections', () => {
       },
     ])
     await items.add({ foo: 'bar' })
+
+    await delay(200)
+
     expect(target.items.value).toHaveLength(2)
     expect(target.items.value).toEqual(
       expect.arrayContaining([
@@ -292,6 +329,9 @@ describe('refs in collections', () => {
       ])
     )
     await item.update({ toggle: false })
+
+    await delay(200)
+
     expect(target.items.value).toHaveLength(2)
     expect(target.items.value).toEqual(
       expect.arrayContaining([

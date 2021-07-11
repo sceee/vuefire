@@ -61,8 +61,8 @@ describe('RTDB: firebase option', () => {
   it('setups $firebaseRefs', async () => {
     const { vm, source } = await createVm()
     expect(Object.keys(vm.$firebaseRefs).sort()).toEqual(['item', 'items'])
-    expect(vm.$firebaseRefs.item).toBe(source)
-    expect(vm.$firebaseRefs.items).toBe(source)
+    expect(vm.$firebaseRefs.item.key).toBe(source.key)
+    expect(vm.$firebaseRefs.items.key).toBe(source.key)
   })
 
   it('clears $firebaseRefs on $destroy', async () => {

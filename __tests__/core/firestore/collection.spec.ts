@@ -1,6 +1,12 @@
 import firebase from 'firebase'
 import { bindCollection } from '../../../src/core'
-import { createOps, generateRandomID, initFirebase, spyUnbind } from '../../src'
+import {
+  createOps,
+  delay,
+  generateRandomID,
+  initFirebase,
+  spyUnbind,
+} from '../../src'
 import * as firestore from '@firebase/firestore-types'
 import { OperationsType } from '../../../src/core'
 import { ref, Ref } from 'vue'
@@ -35,13 +41,17 @@ describe('collections', () => {
 
   it('add elements', async () => {
     await collection.add({ text: 'foo' })
+    await delay(200)
+
     expect(ops.add).toHaveBeenCalledTimes(1)
     expect(ops.add).toHaveBeenLastCalledWith(target.value, 0, {
       text: 'foo',
     })
     await collection.add({ text: 'bar' })
+    await delay(200)
+
     expect(ops.add).toHaveBeenCalledTimes(2)
-    expect(ops.add).toHaveBeenLastCalledWith(target.value, 1, {
+    expect(ops.add).toHaveBeenLastCalledWith(target.value, 0, {
       text: 'bar',
     })
   })

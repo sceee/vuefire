@@ -8,7 +8,7 @@ beforeAll(() => {
 
 describe('Firestore utils', () => {
   let doc: firebase.firestore.DocumentSnapshot,
-    snapshot: firebase.firestore.DocumentData,
+    snapshot: Record<string, unknown>,
     collection: firebase.firestore.CollectionReference,
     docRef: firebase.firestore.DocumentReference
 
@@ -23,6 +23,7 @@ describe('Firestore utils', () => {
       ref: docRef,
     })
     doc = await docTest.get()
+    expect(doc.exists).toBeTruthy()
 
     snapshot = createSnapshot(doc)
   })
@@ -36,20 +37,19 @@ describe('Firestore utils', () => {
   })
 
   it('contains all the data', () => {
-    expect(snapshot).toEqual({
-      n: 42,
-      is: true,
-      items: [{ text: 'foo' }],
-      ref: docRef,
-    })
+    expect(snapshot.n).toEqual(42)
+    expect(snapshot.is).toEqual(true)
+    expect(snapshot.items).toEqual([{ text: 'foo' }])
+    expect((snapshot.ref as firebase.firestore.DocumentReference).path).toEqual(
+      docRef.path
+    )
   })
 
   it('extract refs from document', () => {
     const [noRefsDoc, refs] = extractRefs(doc.data()!, undefined, {})
     expect(noRefsDoc.ref).toBe(docRef.path)
-    expect(refs).toEqual({
-      ref: docRef,
-    })
+    expect(refs.ref).toBeTruthy()
+    expect(refs.ref.path).toEqual(docRef.path)
   })
 
   it('leave Date objects alone when extracting refs', () => {

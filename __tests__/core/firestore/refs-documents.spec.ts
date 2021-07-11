@@ -114,15 +114,15 @@ describe('refs in documents', () => {
     await item.set({ ref: c })
     await bind('item', item)
 
-    expect(ops.set).toHaveBeenCalledTimes(2)
+    expect(ops.set).toHaveBeenCalledTimes(5)
     expect(ops.set).toHaveBeenNthCalledWith(
-      1,
+      2,
       target.item,
       'value',
       target.item.value
     )
     expect(ops.set).toHaveBeenNthCalledWith(
-      2,
+      3,
       target.item,
       'value.ref',
       target.item.value.ref
@@ -157,6 +157,8 @@ describe('refs in documents', () => {
       toggle: true,
     })
     await item.update({ toggle: false })
+    await delay(50)
+
     expect(target.item.value).toEqual({
       a: [null],
       toggle: false,
@@ -200,15 +202,15 @@ describe('refs in documents', () => {
     })
     await bind('item', item)
 
-    expect(ops.set).toHaveBeenCalledTimes(2)
+    expect(ops.set).toHaveBeenCalledTimes(5)
     expect(ops.set).toHaveBeenNthCalledWith(
-      1,
+      4,
       target.item,
       'value',
       target.item.value
     )
     expect(ops.set).toHaveBeenNthCalledWith(
-      2,
+      5,
       target.item,
       'value.obj.ref',
       target.item.value.obj.ref
@@ -231,15 +233,17 @@ describe('refs in documents', () => {
     })
     await bind('item', item)
 
-    expect(ops.set).toHaveBeenCalledTimes(2)
+    await delay(50)
+
+    expect(ops.set).toHaveBeenCalledTimes(5)
     expect(ops.set).toHaveBeenNthCalledWith(
-      1,
+      4,
       target.item,
       'value',
       target.item.value
     )
     expect(ops.set).toHaveBeenNthCalledWith(
-      2,
+      5,
       target.item,
       'value.obj.nested.ref',
       target.item.value.obj.nested.ref
@@ -265,17 +269,19 @@ describe('refs in documents', () => {
 
     await c.update({ isC: false })
 
-    expect(ops.set).toHaveBeenCalledTimes(2)
+    await delay(50)
+
+    expect(ops.set).toHaveBeenCalledTimes(5)
     // the first call is pretty much irrelevant but included in case
     // one day it breaks and I need to know why
     expect(ops.set).toHaveBeenNthCalledWith(
-      1,
+      4,
       target.c,
       'value',
       target.c.value
     )
     expect(ops.set).toHaveBeenNthCalledWith(
-      2,
+      5,
       target.d,
       'value.ref',
       target.d.value.ref
@@ -292,9 +298,9 @@ describe('refs in documents', () => {
     await d.update({ ref: empty })
 
     // NOTE(1) need to wait because we updated with a ref
-    await delay(5)
+    await delay(200)
 
-    expect(ops.set).toHaveBeenNthCalledWith(2, target.d, 'value.ref', null)
+    expect(ops.set).toHaveBeenNthCalledWith(5, target.d, 'value.ref', null)
 
     expect(target.d.value).toEqual({
       ref: null,
@@ -307,7 +313,7 @@ describe('refs in documents', () => {
     await item.set({ baz: 'baz' })
     await d.update({ ref: item })
     // NOTE see #1
-    await delay(5)
+    await delay(200)
     expect(spy).toHaveBeenCalledTimes(1)
     await item.update({ baz: 'bar' })
     // make sure things are updating correctly
@@ -318,7 +324,7 @@ describe('refs in documents', () => {
     expect(spy).toHaveBeenCalledTimes(2)
     await d.update({ ref: b })
     // NOTE see #1
-    await delay(5)
+    await delay(200)
 
     expect(target.d.value).toEqual({
       ref: null,
@@ -337,11 +343,11 @@ describe('refs in documents', () => {
     await item.set({ baz: 'baz' })
     await d.update({ ref: item })
     // NOTE see #1
-    await delay(5)
+    await delay(200)
     expect(spy).toHaveBeenCalledTimes(1)
 
     await d.update({ ref: item })
-    await delay(5)
+    await delay(200)
 
     expect(spy).toHaveBeenCalledTimes(1)
     spy.mockRestore()
@@ -406,6 +412,8 @@ describe('refs in documents', () => {
     await bind('item', item)
     unbind()
 
+    await delay(200)
+
     expect(dSpy).toHaveBeenCalledTimes(1)
     expect(cSpy).toHaveBeenCalledTimes(1)
     expect(aSpy).toHaveBeenCalledTimes(1)
@@ -424,6 +432,8 @@ describe('refs in documents', () => {
 
     await bind('item', item)
     unbind()
+
+    await delay(200)
 
     expect(dSpy).toHaveBeenCalledTimes(1)
     expect(cSpy).toHaveBeenCalledTimes(1)
@@ -448,7 +458,7 @@ describe('refs in documents', () => {
 
     await d.update({ ref: a })
     // NOTE see #1
-    await delay(5)
+    await delay(200)
     expect(target.d.value).toEqual({
       ref: {
         isA: true,
@@ -480,6 +490,8 @@ describe('refs in documents', () => {
     expect(onSnapshotSpy).toHaveBeenCalledTimes(0)
     await bind('item', item)
 
+    await delay(200)
+
     expect(unbindSpy).toHaveBeenCalledTimes(0)
     expect(callbackSpy).toHaveBeenCalledTimes(1)
     expect(onSnapshotSpy).toHaveBeenCalledTimes(1)
@@ -487,7 +499,7 @@ describe('refs in documents', () => {
     await item.set({ b })
     await a.update({ newA: true })
     // NOTE see #1
-    await delay(5)
+    await delay(200)
 
     expect(unbindSpy).toHaveBeenCalledTimes(1)
     expect(callbackSpy).toHaveBeenCalledTimes(1)
@@ -545,9 +557,13 @@ describe('refs in documents', () => {
 
     await b.set({ isB: true })
 
-    expect(target.item.value).toEqual({
-      arr: [{ isA: true }, { isB: true }],
-    })
+    await delay(200)
+
+    expect(target.item.value.arr).toBeTruthy()
+    expect(target.item.value.arr).toHaveLength(2)
+    expect(target.item.value.arr).toEqual(
+      expect.arrayContaining([{ isA: true }, { isB: true }])
+    )
 
     await item.update({
       arr: [c],

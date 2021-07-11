@@ -29,7 +29,7 @@ describe('RTDB options', () => {
 
   it('allows customizing serialize when calling bindDocument', async () => {
     const spy = jest.fn(() => ({ bar: 'foo' }))
-    await new Promise(async (resolve, reject) => {
+    await new Promise((resolve, reject) => {
       unbind = rtdbBindAsObject(
         {
           target,
@@ -40,9 +40,9 @@ describe('RTDB options', () => {
         },
         { serialize: spy }
       )
-      await document.set({ foo: 'foo' })
       //// document.flush()
     })
+    await document.set({ foo: 'foo' })
 
     expect(spy).toHaveBeenCalledTimes(2)
     expect(spy).toHaveBeenLastCalledWith(
@@ -54,7 +54,7 @@ describe('RTDB options', () => {
   it('allows customizing serialize when calling bindCollection', async () => {
     const spy = jest.fn(() => ({ bar: 'foo' }))
 
-    await new Promise(async (resolve, reject) => {
+    await new Promise((resolve, reject) => {
       unbind = rtdbBindAsArray(
         {
           target,
@@ -65,9 +65,9 @@ describe('RTDB options', () => {
         },
         { serialize: spy }
       )
-      await collection.push({ foo: 'foo' })
       // collection.flush()
     })
+    await collection.push({ foo: 'foo' })
 
     expect(spy).toHaveBeenCalledTimes(1)
     expect(spy).toBeCalledWith(
@@ -81,7 +81,7 @@ describe('RTDB options', () => {
     const spy = jest.fn(() => ({ bar: 'foo' }))
     rtdbOptions.serialize = spy
 
-    await new Promise(async (resolve, reject) => {
+    await new Promise((resolve, reject) => {
       unbind = rtdbBindAsObject(
         {
           target,
@@ -92,9 +92,9 @@ describe('RTDB options', () => {
         },
         { serialize: spy }
       )
-      await document.set({ foo: 'foo' })
       //// document.flush()
     })
+    await document.set({ foo: 'foo' })
 
     expect(spy).toHaveBeenCalledTimes(2)
     expect(spy).toBeCalledWith(
@@ -110,7 +110,7 @@ describe('RTDB options', () => {
     const spy = jest.fn(() => ({ bar: 'foo' }))
     rtdbOptions.serialize = spy
 
-    await new Promise(async (resolve, reject) => {
+    await new Promise((resolve, reject) => {
       unbind = rtdbBindAsArray(
         {
           target,
@@ -121,9 +121,9 @@ describe('RTDB options', () => {
         },
         { serialize: spy }
       )
-      await collection.push({ foo: 'foo' })
       // collection.flush()
     })
+    await collection.push({ foo: 'foo' })
 
     expect(spy).toHaveBeenCalledTimes(1)
     expect(spy).toBeCalledWith(
