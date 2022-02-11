@@ -3,11 +3,11 @@ import { bindDocument, FirestoreOptions } from '../../../src/core'
 import {
   delay,
   spyUnbind,
-  spyOnSnapshot,
   spyOnSnapshotCallback,
   createOps,
   initFirebase,
   generateRandomID,
+  spyOnSnapshot,
 } from '../../src'
 import * as firestore from '@firebase/firestore-types'
 import { OperationsType } from '../../../src/shared'

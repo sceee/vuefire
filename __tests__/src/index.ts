@@ -3,7 +3,6 @@ import 'firebase/firestore'
 import 'firebase/database'
 import { nextTick } from 'vue-demi'
 import { OperationsType, walkSet } from '../../src/core'
-import { inspect } from 'util'
 import { v4 as uuidv4 } from 'uuid'
 
 // Vue.config.productionTip = false
@@ -31,21 +30,23 @@ export function spyUnbind(ref: FirestoreReference): jest.SpyInstance<any, any> {
 }
 
 export function spyOnSnapshot(
-  ref: FirestoreReference
+  ref: firebase.firestore.DocumentReference
 ): jest.SpyInstance<any, any> {
-  //return jest.spyOn(ref, 'onSnapshot')
-  const onSnapshot = ref.onSnapshot.bind(ref)
-  // @ts-ignore
-  return (ref.onSnapshot = jest.fn((...args) => onSnapshot(...args)))
+  const spy = jest.fn()
+  ref.onSnapshot((doc) => {
+    console.log('onSnapshot called!')
+    spy(doc)
+  })
+
+  return spy
 }
 
 export function spyOnSnapshotCallback(
   ref: FirestoreReference
-): jest.SpyInstance<any, any> {
+): jest.Mock<any, any> {
   const onSnapshot = ref.onSnapshot.bind(ref)
   const spy = jest.fn()
   ref.onSnapshot = (fn: any) =>
-    // @ts-ignore
     onSnapshot((...args) => {
       spy()
       fn(...args)
