@@ -188,7 +188,9 @@ export function bindCollection(
   resolve: BindCollectionParameter['resolve'],
   reject: BindCollectionParameter['reject'],
   extraOptions: FirestoreOptions = DEFAULT_OPTIONS
-) {
+): (reset?: FirestoreOptions['reset']) => void {
+  console.log('bindCollection called')
+
   const options = Object.assign({}, DEFAULT_OPTIONS, extraOptions) // fill default values
   const key = 'value'
   if (!options.wait) ops.set(target, key, [])
@@ -280,7 +282,9 @@ export function bindCollection(
             }
             originalResolve(unref(arrayRef))
             // reset resolve to noop
-            resolve = () => {}
+            resolve = () => {
+              // Noop
+            }
           }
         }
       }
@@ -328,7 +332,7 @@ export function bindDocument(
   resolve: BindDocumentParameter['resolve'],
   reject: BindDocumentParameter['reject'],
   extraOptions: FirestoreOptions = DEFAULT_OPTIONS
-) {
+): (reset?: FirestoreOptions['reset']) => void {
   const options = Object.assign({}, DEFAULT_OPTIONS, extraOptions) // fill default values
   const key = 'value'
   // TODO: warning check if key exists?

@@ -67,7 +67,7 @@ export function internalUnbind(
     | Record<string, ReturnType<typeof bindCollection | typeof bindDocument>>
     | undefined,
   reset?: FirestoreOptions['reset']
-) {
+): void {
   if (unbinds && unbinds[key]) {
     unbinds[key](reset)
     delete unbinds[key]
@@ -164,7 +164,7 @@ const firestoreUnbinds = new WeakMap<
 export const firestorePlugin = function firestorePlugin(
   app: App,
   pluginOptions: PluginOptions = defaultOptions
-) {
+): void {
   // const strategies = app.config.optionMergeStrategies
   // TODO: implement
   // strategies.firestore =
@@ -265,7 +265,7 @@ export function bind(
     | firestore.Query
     | firestore.DocumentReference,
   options?: FirestoreOptions
-) {
+): Promise<any> {
   const unbinds = {}
   firestoreUnbinds.set(target, unbinds)
   const [promise, unbind] = internalBind(
