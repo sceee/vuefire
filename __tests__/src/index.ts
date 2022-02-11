@@ -16,13 +16,14 @@ type FirestoreReference =
 export function spyUnbind(
   ref: firebase.firestore.DocumentReference
 ): jest.SpyInstance<any, any> {
+  console.log(`Spying for unbind for ref ${ref.path}`)
   const unbindSpy = jest.fn()
   const onSnapshot = ref.onSnapshot.bind(ref)
   ref.onSnapshot = (fn) => {
-    console.log(`Calling original onSnapshot`)
+    console.log(`Calling original onSnapshot for ref ${ref.path}`)
     const unbind = onSnapshot(fn)
     return () => {
-      console.log(`onSnapshot unbind!`)
+      console.log(`onSnapshot unbind (with spy) for ref ${ref.path} called!`)
       unbindSpy()
       unbind()
     }
@@ -51,13 +52,9 @@ export function spyUnbindCollectionRef(
 export function spyOnSnapshot(
   ref: firebase.firestore.DocumentReference
 ): jest.SpyInstance<any, any> {
-  const spy = jest.fn()
-  ref.onSnapshot((doc) => {
-    console.log('onSnapshot called!')
-    spy(doc)
-  })
-
-  return spy
+  const onSnapshot = ref.onSnapshot.bind(ref)
+  // @ts-ignore
+  return (ref.onSnapshot = jest.fn((...args) => onSnapshot(...args)))
 }
 
 export function spyOnSnapshotCallback(

@@ -18,7 +18,7 @@ export type TODO = any
 export function walkGet(
   obj: Record<string, any>,
   path: string
-): Record<string, any> {
+): firestore.DocumentData {
   // TODO: development warning when target[key] does not exist
   const splittedPath = path.split('.')
   const reduced = splittedPath.reduce((target, key) => target[key], obj)
