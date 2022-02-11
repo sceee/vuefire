@@ -13,7 +13,41 @@ type FirestoreReference =
   | firebase.firestore.DocumentReference
   | firebase.firestore.Query
 
-export function spyUnbind(ref: FirestoreReference): jest.SpyInstance<any, any> {
+export function spyUnbind(
+  ref: firebase.firestore.DocumentReference
+): jest.SpyInstance<any, any> {
+  const unbindSpy = jest.fn()
+
+  /* const originalOnSnapshot = ref.onSnapshot(() => {
+    // Do nothing
+  })
+
+  const fakeOnSnapshot: () => () => void = () => {
+      return () => {
+        unbindSpy()
+      originalOnSnapshot()
+    }
+  }
+
+  ref.onSnapshot = fakeOnSnapshot */
+
+  const originalOnSnapshot = ref.onSnapshot.bind(ref)
+
+  ref.onSnapshot = () => {
+    const unbind = originalOnSnapshot(() => {
+      // Do nothing
+    })
+    return () => {
+      unbindSpy()
+      unbind()
+    }
+  }
+  return unbindSpy
+}
+
+export function spyUnbindCollectionRef(
+  ref: firebase.firestore.CollectionReference
+): jest.SpyInstance<any, any> {
   const unbindSpy = jest.fn()
   const onSnapshot = ref.onSnapshot.bind(ref)
   ref.onSnapshot =

@@ -5,7 +5,7 @@ import {
   delay,
   generateRandomID,
   initFirebase,
-  spyUnbind,
+  spyUnbindCollectionRef,
 } from '../../src'
 import * as firestore from '@firebase/firestore-types'
 import { OperationsType } from '../../../src/core'
@@ -124,7 +124,7 @@ describe('collections', () => {
   it('manually unbinds a collection', async () => {
     collection = firebase.firestore().collection(generateRandomID())
     await collection.add({ text: 'foo' })
-    const unbindSpy = spyUnbind(collection)
+    const unbindSpy = spyUnbindCollectionRef(collection)
     let unbind: () => void = () => {
       throw new Error('Promise was not called')
     }
