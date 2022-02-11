@@ -17,31 +17,17 @@ export function spyUnbind(
   ref: firebase.firestore.DocumentReference
 ): jest.SpyInstance<any, any> {
   const unbindSpy = jest.fn()
-
-  /* const originalOnSnapshot = ref.onSnapshot(() => {
-    // Do nothing
-  })
-
-  const fakeOnSnapshot: () => () => void = () => {
+  const onSnapshot = ref.onSnapshot.bind(ref)
+  ref.onSnapshot =
+    // @ts-ignore
+    (fn) => {
+      // @ts-ignore
+      const unbind = onSnapshot(fn)
       return () => {
         unbindSpy()
-      originalOnSnapshot()
+        unbind()
+      }
     }
-  }
-
-  ref.onSnapshot = fakeOnSnapshot */
-
-  const originalOnSnapshot = ref.onSnapshot.bind(ref)
-
-  ref.onSnapshot = () => {
-    const unbind = originalOnSnapshot(() => {
-      // Do nothing
-    })
-    return () => {
-      unbindSpy()
-      unbind()
-    }
-  }
   return unbindSpy
 }
 
