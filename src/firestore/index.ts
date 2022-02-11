@@ -29,6 +29,7 @@ interface FirestoreSubscription {
 
 function unsubscribeAll(subs: Record<string, FirestoreSubscription>) {
   for (const sub in subs) {
+    console.log(`Calling .unsub for ${subs[sub].path}`)
     subs[sub].unsub()
   }
 }
@@ -66,7 +67,9 @@ function subscribeToDocument(
   options: Required<FirestoreOptions>
 ) {
   const subs = Object.create(null)
+  console.log(`Real onSnapshot called for ${ref.path}`)
   const unbind = ref.onSnapshot((snapshot) => {
+    console.log(`Real snapshot received for ${ref.path}`)
     if (snapshot.exists) {
       updateDataFromDocumentSnapshot(
         options,
@@ -119,6 +122,7 @@ function subscribeToRefs(
   )
   // unbind keys that are no longer there
   missingKeys.forEach((refKey) => {
+    console.log(`Calling .unsub for ${subs[refKey].path}`)
     subs[refKey].unsub()
     delete subs[refKey]
   })
@@ -142,9 +146,14 @@ function subscribeToRefs(
 
     // unsubscribe if bound to a different ref
     if (sub) {
-      if (sub.path !== ref.path) sub.unsub()
+      if (sub.path !== ref.path) {
+        console.log(`Calling .unsub for ${sub.path}`)
+        sub.unsub()
+      }
       // if has already be bound and as we always walk the objects, it will work
-      else return
+      else {
+        return
+      }
     }
 
     subs[refKey] = {

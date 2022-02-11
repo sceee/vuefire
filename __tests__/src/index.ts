@@ -18,16 +18,15 @@ export function spyUnbind(
 ): jest.SpyInstance<any, any> {
   const unbindSpy = jest.fn()
   const onSnapshot = ref.onSnapshot.bind(ref)
-  ref.onSnapshot =
-    // @ts-ignore
-    (fn) => {
-      // @ts-ignore
-      const unbind = onSnapshot(fn)
-      return () => {
-        unbindSpy()
-        unbind()
-      }
+  ref.onSnapshot = (fn) => {
+    console.log(`Calling original onSnapshot`)
+    const unbind = onSnapshot(fn)
+    return () => {
+      console.log(`onSnapshot unbind!`)
+      unbindSpy()
+      unbind()
     }
+  }
   return unbindSpy
 }
 
