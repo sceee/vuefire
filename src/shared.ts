@@ -20,7 +20,9 @@ export function walkGet(
   path: string
 ): Record<string, any> {
   // TODO: development warning when target[key] does not exist
-  return path.split('.').reduce((target, key) => target[key], obj)
+  const splittedPath = path.split('.')
+  const reduced = splittedPath.reduce((target, key) => target[key], obj)
+  return reduced
 }
 
 /**
